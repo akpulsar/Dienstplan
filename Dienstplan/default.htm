@@ -1,0 +1,37 @@
+﻿<!DOCTYPE html>
+
+<html lang="en">
+<head>
+    <meta charset="utf-8" />
+    <title>Schedule</title>
+    <link rel="stylesheet" href="app.css" type="text/css" />
+	<script src="Scripts/knockout-2.2.1.js"></script>
+    <script src="Schedule.js"></script>
+	<script src="app.js"></script>
+</head>
+<body>
+    <h1>Schedule</h1>
+
+	<div id="schedule">
+		<table>
+			<thead>
+
+			</thead>
+			
+			<tbody data-bind="foreach: { data: schedule.Days, as : 'day' }">
+				<tr>
+					<th data-bind="text: day.dayName"></th>
+					<!-- ko foreach: { data: day.WorkUnits, as : 'unit' } -->
+						<th data-bind="text: unit.shortName"></th>
+					<!-- /ko -->
+				</tr>
+				<!-- ko foreach: { data: schedule.Employees, as :'employee' }-->
+				<tr>
+					<td data-bind="text: name"></td>
+				</tr>
+				<!-- /ko -->
+			</tbody>
+		</table>
+	</div>
+</body>
+</html>
