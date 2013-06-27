@@ -28,6 +28,22 @@
 				<!-- ko foreach: { data: schedule.Employees, as :'employee' }-->
 				<tr>
 					<td data-bind="text: name"></td>
+					<!-- ko foreach: { data: day.WorkUnits, as : 'unit' } -->
+					<td data-bind="text: unit.work()[employee.index]().text, click: function (data, event) { unit.work()[employee.index]().changeType(); }, style : { background : unit.work()[employee.index]().type() != Schedule.WorkType.Pause ? employee.color : 'white' }"></td>
+					<!-- /ko -->
+				</tr>
+				<!-- /ko -->
+			</tbody>
+		</table>
+		<table>
+			<tbody>
+				<tr>
+					<th>Person</th><th>Hours</th>
+				</tr>
+				<!-- ko foreach: { data: schedule.Employees, as : 'employee' } -->
+				<tr>
+					<td data-bind="text: name"></td>
+					<td data-bind="text: schedule.totalHours(employee)"></td>
 				</tr>
 				<!-- /ko -->
 			</tbody>
