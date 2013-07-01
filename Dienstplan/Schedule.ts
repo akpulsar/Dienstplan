@@ -37,9 +37,9 @@ module Schedule {
 
 		get shortName() {
 			return this.beginTime.getHours() + ":" +
-				WorkUnit.pad(this.beginTime.getMinutes(), 2) + " - " +
-				this.endTime.getHours() + ":" +
-				WorkUnit.pad(this.endTime.getMinutes(), 2);
+				WorkUnit.pad(this.beginTime.getMinutes(), 2);
+				//this.endTime.getHours() + ":" +
+				//WorkUnit.pad(this.endTime.getMinutes(), 2);
 		}
 
 		change(index: number) {
@@ -48,12 +48,55 @@ module Schedule {
 	}
 
 	export class WorkDay {
-		public WorkUnits:  KnockoutObservableArray<WorkUnit> = ko.observableArray<WorkUnit>([]);
+		public WorkUnits: KnockoutObservableArray<WorkUnit> = ko.observableArray<WorkUnit>([]);
+
 		constructor() {
 		}
 
 		get dayName() {
 			return this.WorkUnits()[0].dayName;
+		}
+
+		errorsForEmployee(employee: Employee): { invalid: boolean; messages: string[] } {
+			var ret = { invalid: false, messages: [] };
+			var sixHours = this.checkSixHoursLimit(employee);
+
+			if (!sixHours.result) {
+				ret.invalid = true;
+				ret.messages.push(sixHours.message);
+			}
+
+			return ret;
+		}
+
+		checkSixHoursLimit(employee: Employee): { result: boolean; message: string } {
+			console.log("checking six hours");
+			var tooLong = false;
+			var beginTime = this.WorkUnits()[0].beginTime;
+			var endTime = beginTime;
+
+			this.WorkUnits().forEach((wu) => {
+				if (wu.work()[employee.index]().type() == WorkType.Pause)
+				{
+					beginTime = wu.beginTime;
+					endTime = wu.endTime;
+				}
+				else
+				{
+					endTime = wu.endTime;
+					var diff = (endTime.valueOf() - beginTime.valueOf());
+					if (diff > (1000 * 60 * 60 * 6)) {
+						console.log("too long");
+						tooLong = true;
+					}
+				}
+			});
+
+			if (tooLong) {
+				return { result: false, message: "work unit longer than six hours" };
+			}
+			
+			return { result : true, message : "ok." };
 		}
 	}
 
@@ -149,7 +192,7 @@ module Schedule {
 			}
 		}
 
-		totalHours(employee: Employee): string{
+		totalHours(employee: Employee): Date{
 			var hours = 0;
 			for (var day = 0; day < this.Days().length; day++)
 			{
@@ -165,7 +208,11 @@ module Schedule {
 			}
 
 			var d = new Date(hours);
-			return (d.getHours() - 1)+ ":" + d.getMinutes();
+			return d;
+		}
+
+		relativeHours(employee: Employee): string{
+			return ((this.totalHours(employee).getHours() / 38.5) * 100) + '%';
 		}
 	}
 }

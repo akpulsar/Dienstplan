@@ -45,7 +45,7 @@ var Schedule;
 
         Object.defineProperty(WorkUnit.prototype, "shortName", {
             get: function () {
-                return this.beginTime.getHours() + ":" + WorkUnit.pad(this.beginTime.getMinutes(), 2) + " - " + this.endTime.getHours() + ":" + WorkUnit.pad(this.endTime.getMinutes(), 2);
+                return this.beginTime.getHours() + ":" + WorkUnit.pad(this.beginTime.getMinutes(), 2);
             },
             enumerable: true,
             configurable: true
@@ -68,6 +68,45 @@ var Schedule;
             enumerable: true,
             configurable: true
         });
+
+        WorkDay.prototype.errorsForEmployee = function (employee) {
+            var ret = { invalid: false, messages: [] };
+            var sixHours = this.checkSixHoursLimit(employee);
+
+            if (!sixHours.result) {
+                ret.invalid = true;
+                ret.messages.push(sixHours.message);
+            }
+
+            return ret;
+        };
+
+        WorkDay.prototype.checkSixHoursLimit = function (employee) {
+            console.log("checking six hours");
+            var tooLong = false;
+            var beginTime = this.WorkUnits()[0].beginTime;
+            var endTime = beginTime;
+
+            this.WorkUnits().forEach(function (wu) {
+                if (wu.work()[employee.index]().type() == WorkType.Pause) {
+                    beginTime = wu.beginTime;
+                    endTime = wu.endTime;
+                } else {
+                    endTime = wu.endTime;
+                    var diff = (endTime.valueOf() - beginTime.valueOf());
+                    if (diff > (1000 * 60 * 60 * 6)) {
+                        console.log("too long");
+                        tooLong = true;
+                    }
+                }
+            });
+
+            if (tooLong) {
+                return { result: false, message: "work unit longer than six hours" };
+            }
+
+            return { result: true, message: "ok." };
+        };
         return WorkDay;
     })();
     Schedule.WorkDay = WorkDay;
@@ -179,7 +218,11 @@ var Schedule;
             }
 
             var d = new Date(hours);
-            return (d.getHours() - 1) + ":" + d.getMinutes();
+            return d;
+        };
+
+        Week.prototype.relativeHours = function (employee) {
+            return ((this.totalHours(employee).getHours() / 38.5) * 100) + '%';
         };
         return Week;
     })();

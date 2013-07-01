@@ -4,8 +4,11 @@
 <head>
     <meta charset="utf-8" />
     <title>Schedule</title>
+	<link href="Content/bootstrap.min.css" rel="stylesheet" media="screen">
     <link rel="stylesheet" href="app.css" type="text/css" />
+	<script src="Scripts/jquery-2.0.2.js"></script>
 	<script src="Scripts/knockout-2.2.1.js"></script>
+	<script src="Scripts/knockout-bootstrap.js"></script>
     <script src="Schedule.js"></script>
 	<script src="app.js"></script>
 </head>
@@ -22,15 +25,18 @@
 				<tr>
 					<th data-bind="text: day.dayName"></th>
 					<!-- ko foreach: { data: day.WorkUnits, as : 'unit' } -->
-						<th data-bind="text: unit.shortName"></th>
+						<th data-bind="text: unit.shortName" style="text-align:left"></th>
 					<!-- /ko -->
 				</tr>
 				<!-- ko foreach: { data: schedule.Employees, as :'employee' }-->
 				<tr>
-					<td data-bind="text: name"></td>
+					<td data-bind="text: name" style="width: 100px"></td>
 					<!-- ko foreach: { data: day.WorkUnits, as : 'unit' } -->
-					<td data-bind="text: unit.work()[employee.index]().text, click: function (data, event) { unit.work()[employee.index]().changeType(); }, style : { background : unit.work()[employee.index]().type() != Schedule.WorkType.Pause ? employee.color : 'white' }"></td>
+					<td style="width: 75px"
+						data-bind="text: unit.work()[employee.index]().text, click: function (data, event) { unit.work()[employee.index]().changeType(); }, style : { background : unit.work()[employee.index]().type() != Schedule.WorkType.Pause ? employee.color : 'white' }"></td>
 					<!-- /ko -->
+					<!-- text: day.errorsForEmployee(employee).messages, -->
+					<td data-bind="visible: day.errorsForEmployee(employee).invalid, text: day.errorsForEmployee(employee).messages[0]"></td>
 				</tr>
 				<!-- /ko -->
 			</tbody>
@@ -38,16 +44,21 @@
 		<table>
 			<tbody>
 				<tr>
-					<th>Person</th><th>Hours</th>
+					<th>Person</th><th></th><th>Hours</th>
 				</tr>
 				<!-- ko foreach: { data: schedule.Employees, as : 'employee' } -->
 				<tr>
 					<td data-bind="text: name"></td>
-					<td data-bind="text: schedule.totalHours(employee)"></td>
+					<td>
+						<div data-bind="progress: 'schedule.relativeHours(employee)'" style="width:300px" />
+					</td>
+					<td data-bind="text: schedule.totalHours(employee)">
+					</td>
 				</tr>
 				<!-- /ko -->
 			</tbody>
 		</table>
 	</div>
+	 <script src="Scripts/bootstrap.min.js"></script>
 </body>
 </html>

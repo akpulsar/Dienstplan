@@ -5,9 +5,6 @@
 
 var schedule: Schedule.Week = new Schedule.Week();
 
-
 window.onload = () => {
 	ko.applyBindings(schedule);
-	alert("done");
-
 };
