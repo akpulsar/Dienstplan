@@ -1,0 +1,23 @@
+<?xml version="1.0"?>
+<package xmlns="http://schemas.microsoft.com/packaging/2010/07/nuspec.xsd">
+  <metadata>
+    <id>knockout-bootstrap</id>
+    <version>0.2.1</version>
+    <title>knockout-bootstrap</title>
+    <authors>bpullen</authors>
+    <owners>bpullen</owners>
+    <licenseUrl>http://www.opensource.org/licenses/mit-license.php</licenseUrl>
+    <projectUrl>http://billpull.github.io/knockout-bootstrap/</projectUrl>
+    <requireLicenseAcceptance>false</requireLicenseAcceptance>
+    <description>Knockout-bootstrap is a set of custom knockout binding handlers that provide access to Bootstrap javascript widgets.</description>
+    <summary>MIT License</summary>
+    <releaseNotes />
+    <copyright />
+    <language>en-US</language>
+    <dependencies>
+      <dependency id="jQuery" version="2.0.1.1" />
+      <dependency id="knockoutjs" version="2.2.1" />
+      <dependency id="Twitter.Bootstrap" version="2.3.2" />
+    </dependencies>
+  </metadata>
+</package>
