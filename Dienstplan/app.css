@@ -6,3 +6,12 @@
 span {
     font-style: italic
 }
+
+#errorindicator.errors {
+	color : red;
+	visibility:visible;
+}
+
+#errorindicator.noerrors{
+	visibility:hidden
+}

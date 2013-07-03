@@ -25,7 +25,10 @@
 				<tr>
 					<th data-bind="text: day.dayName"></th>
 					<!-- ko foreach: { data: day.WorkUnits, as : 'unit' } -->
-						<th data-bind="text: unit.shortName" style="text-align:left"></th>
+						<th style="text-align:left">
+							<span data-bind="text: unit.shortName"></span>
+							<span id="errorindicator" data-bind="css: unit.errors != 'none' ? 'errors' : 'noerrors', attr : { title: unit.errors }">!</span>
+						</th>
 					<!-- /ko -->
 				</tr>
 				<!-- ko foreach: { data: schedule.Employees, as :'employee' }-->
@@ -52,7 +55,10 @@
 					<td>
 						<div data-bind="progress: 'schedule.relativeHours(employee)'" style="width:300px" />
 					</td>
-					<td data-bind="text: schedule.totalHours(employee)">
+					<td data-bind="with: schedule.totalHours(employee)">
+						<span data-bind="text: getHours() - 1"></span>
+						<span>:</span>
+						<span data-bind="text: Schedule.WorkUnit.pad(getMinutes(), 2)"></span>
 					</td>
 				</tr>
 				<!-- /ko -->

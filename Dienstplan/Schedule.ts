@@ -1,19 +1,33 @@
-/// <reference path="Scripts/typings/knockout/knockout.d.ts" />
+﻿/// <reference path="Scripts/typings/knockout/knockout.d.ts" />
 // Module
 module Schedule {
 
 	// Class
 	export class Employee {
 
-		constructor(public name: string, public index:number, public color : string) {
+		constructor(public name: string, public index:number, public color : string, public type : EmployeeType) {
 		}
+	}
+	 
+	export enum EmployeeType {
+		Teacher,
+		Helper
+	}
+	
+	export enum WorkUnitType {
+		EinzelGruppeFrueh,
+		DoppelGruppe,
+		Mittagessen,
+		KuecheRastenAufbleiber,
+		EinzelGruppe,
+		EinzelGruppeReinigung
 	}
 
 	export class WorkUnit {
 
 		public work: KnockoutObservableArray<KnockoutObservable<WorkCell>> = ko.observableArray<KnockoutObservable<WorkCell>>([]);
 
-		constructor(public beginTime: Date, public endTime: Date) {
+		constructor(public beginTime: Date, public endTime: Date, public type : WorkUnitType) {
 		}
 
 		static pad(num, size) {
@@ -38,12 +52,61 @@ module Schedule {
 		get shortName() {
 			return this.beginTime.getHours() + ":" +
 				WorkUnit.pad(this.beginTime.getMinutes(), 2);
-				//this.endTime.getHours() + ":" +
-				//WorkUnit.pad(this.endTime.getMinutes(), 2);
+			//this.endTime.getHours() + ":" +
+			//WorkUnit.pad(this.endTime.getMinutes(), 2);
 		}
 
-		change(index: number) {
-			//this.work()[index]();
+		get errors(): string {
+			var err: string[] = [];
+
+			switch(this.type)
+			{
+				case WorkUnitType.EinzelGruppeFrueh:
+					// check that there is at least one teacher
+					if (!this.work().some(x => x().employee.type == EmployeeType.Teacher && x().type() == WorkType.KinderDienst))
+					{
+						err.push("There must be at least one teacher");
+					}
+					break;
+				case WorkUnitType.DoppelGruppe:
+					// check that there are 2 teachers and 2 helpers with KinderDienst
+					if (this.work().filter(x => (x().employee.type == EmployeeType.Teacher && x().type() == WorkType.KinderDienst)).length != 2 ||
+						this.work().filter(x => (x().employee.type == EmployeeType.Helper && x().type() == WorkType.KinderDienst)).length != 2)
+					{
+						err.push("There must be 2 teachers and 2 helpers");
+					}
+					break;
+				case WorkUnitType.Mittagessen:
+					if (!(this.work().filter(x => x().type() != WorkType.Pause).length >= 3))
+					{
+						err.push("There must be 3 employees at duty");
+					}
+					break;
+				case WorkUnitType.KuecheRastenAufbleiber:
+					if (!(this.work().filter(x => x().employee.type == EmployeeType.Helper && x().type() == WorkType.Kueche).length == 1 &&
+						this.work().filter(x => x().type() == WorkType.Rasten).length == 1 &&
+						this.work().filter(x => x().type() == WorkType.Aufbleiber).length == 1))
+					{
+						err.push("1x Küche, 1x Rasten, 1x Aufbleiber");
+					}
+					break;
+				case WorkUnitType.EinzelGruppe:
+					if (!(this.work().filter(x => x().employee.type == EmployeeType.Teacher && x().type() == WorkType.KinderDienst).length == 1 &&
+						this.work().filter(x => x().employee.type == EmployeeType.Teacher && x().type() == WorkType.KinderDienst).length == 1))
+					{
+						err.push("1x Päd + 1x Hilf -> Kinderdienst");
+					}
+					break;
+				case WorkUnitType.EinzelGruppeReinigung:
+					if (!(this.work().filter(x => x().employee.type == EmployeeType.Teacher && x().type() == WorkType.KinderDienst).length == 1 && 
+						this.work().filter(x => x().type() == WorkType.Reinigung).length == 1))
+					{
+						err.push("1x Päd -> Kinderdienst + 1x Hilf -> Reinigung");
+					}
+					break;
+			}
+
+			return err.length > 0 ? err.join("<br>") : "none";
 		}
 	}
 
@@ -102,7 +165,7 @@ module Schedule {
 
 	export class WorkCell {
 
-		constructor(ntype: WorkType) {
+		constructor(ntype: WorkType, public employee : Employee, public workUnit : WorkUnit) {
 			this.type = ko.observable(ntype);
 			this.text = ko.computed(function (): string { return this.stringRep(); }, this);
 			this.css = ko.computed(function (): string { return "css" + this.text(); }, this);
@@ -120,8 +183,8 @@ module Schedule {
 					return "Kinder";
 				case WorkType.Aufbleiber:
 					return "Aufbleiber";
-				case WorkType.MittagsDienst:
-					return "Mittag";
+				case WorkType.Kueche:
+					return "Küche";
 				case WorkType.Rasten:
 					return "Rasten";
 				case WorkType.Reinigung:
@@ -137,14 +200,14 @@ module Schedule {
 				case WorkType.Pause:
 					newType = WorkType.KinderDienst; break;
 				case WorkType.KinderDienst:
-					newType = WorkType.Reinigung; break;
-				case WorkType.Reinigung:
+					newType = WorkType.Kueche; break;
+				case WorkType.Kueche:
 					newType = WorkType.Rasten; break;
 				case WorkType.Rasten:
 					newType = WorkType.Aufbleiber; break;
 				case WorkType.Aufbleiber:
-					newType = WorkType.MittagsDienst; break;
-				case WorkType.MittagsDienst:
+					newType = WorkType.Reinigung; break;
+				case WorkType.Reinigung:
 					newType = WorkType.Pause; break;
 			}
 			
@@ -155,10 +218,10 @@ module Schedule {
 	export enum WorkType {
 		Pause,
 		KinderDienst,
-		Reinigung,
+		Kueche,
 		Rasten,
 		Aufbleiber,
-		MittagsDienst,
+		Reinigung,
 	}
 
 	export class Week {
@@ -167,28 +230,48 @@ module Schedule {
 
 		constructor() {
 			
-			this.Employees.push(new Employee("Elisabeth", 0, "red"));
-			this.Employees.push(new Employee("Theresa", 1, "green"));
-			this.Employees.push(new Employee("Irene", 2, "yellow"));
-			this.Employees.push(new Employee("Renate", 3, "palegreen"));
-			this.Employees.push(new Employee("Andrea", 4, "orange"));
+			this.Employees.push(new Employee("Elisabeth", 0, "red", EmployeeType.Teacher));
+			this.Employees.push(new Employee("Theresa", 1, "green", EmployeeType.Teacher));
+			this.Employees.push(new Employee("Irene", 2, "yellow", EmployeeType.Helper));
+			this.Employees.push(new Employee("Renate", 3, "palegreen", EmployeeType.Helper));
+			this.Employees.push(new Employee("Andrea", 4, "orange", EmployeeType.Teacher));
 
 			for (var day = 0; day < 5; day++)
 			{
-				this.Days.push(new WorkDay());
+				var d = new WorkDay();
+				this.Days.push(d);
 
-				for (var i = 0; i < 9; i++)
-				{
-					var firstHalf = new WorkUnit(new Date(2013, 06, 22 + day, 07 + i, 00), new Date(2013, 06, 22 + day, 07 + i, 30));
-					var secondHalf = new WorkUnit(new Date(2013, 06, 22 + day, 07 + i, 30), new Date(2013, 06, 22 + day, 07 + i + 1, 00));
-					this.Days()[day].WorkUnits.push(firstHalf);
-					this.Days()[day].WorkUnits.push(secondHalf);
+				var y = 2013;
+				var m = 06;
 
-					for (var e = 0; e < this.Employees().length; e++) {
-						firstHalf.work().push(ko.observable(new WorkCell(WorkType.Pause)));
-						secondHalf.work().push(ko.observable(new WorkCell(WorkType.Pause)));
-					}
-				}
+				var units = [
+					new WorkUnit(new Date(y, m, 22 + day, 07, 00), new Date(y, m, 22 + day, 07, 30), WorkUnitType.EinzelGruppeFrueh),
+					new WorkUnit(new Date(y, m, 22 + day, 07, 30), new Date(y, m, 22 + day, 08, 00), WorkUnitType.DoppelGruppe),
+					new WorkUnit(new Date(y, m, 22 + day, 08, 00), new Date(y, m, 22 + day, 08, 30), WorkUnitType.DoppelGruppe),
+					new WorkUnit(new Date(y, m, 22 + day, 08, 30), new Date(y, m, 22 + day, 09, 00), WorkUnitType.DoppelGruppe),
+					new WorkUnit(new Date(y, m, 22 + day, 09, 00), new Date(y, m, 22 + day, 09, 30), WorkUnitType.DoppelGruppe),
+					new WorkUnit(new Date(y, m, 22 + day, 09, 30), new Date(y, m, 22 + day, 10, 00), WorkUnitType.DoppelGruppe),
+					new WorkUnit(new Date(y, m, 22 + day, 10, 00), new Date(y, m, 22 + day, 10, 30), WorkUnitType.DoppelGruppe),
+					new WorkUnit(new Date(y, m, 22 + day, 10, 30), new Date(y, m, 22 + day, 11, 00), WorkUnitType.DoppelGruppe),
+					new WorkUnit(new Date(y, m, 22 + day, 11, 00), new Date(y, m, 22 + day, 11, 30), WorkUnitType.DoppelGruppe),
+					new WorkUnit(new Date(y, m, 22 + day, 11, 30), new Date(y, m, 22 + day, 12, 00), WorkUnitType.Mittagessen),
+					new WorkUnit(new Date(y, m, 22 + day, 12, 00), new Date(y, m, 22 + day, 12, 30), WorkUnitType.Mittagessen),
+					new WorkUnit(new Date(y, m, 22 + day, 12, 30), new Date(y, m, 22 + day, 13, 00), WorkUnitType.KuecheRastenAufbleiber),
+					new WorkUnit(new Date(y, m, 22 + day, 13, 00), new Date(y, m, 22 + day, 13, 30), WorkUnitType.KuecheRastenAufbleiber),
+					new WorkUnit(new Date(y, m, 22 + day, 13, 30), new Date(y, m, 22 + day, 14, 00), WorkUnitType.EinzelGruppe),
+					new WorkUnit(new Date(y, m, 22 + day, 14, 00), new Date(y, m, 22 + day, 14, 30), WorkUnitType.EinzelGruppe),
+					new WorkUnit(new Date(y, m, 22 + day, 14, 30), new Date(y, m, 22 + day, 15, 00), WorkUnitType.EinzelGruppe),
+					new WorkUnit(new Date(y, m, 22 + day, 15, 00), new Date(y, m, 22 + day, 15, 30), WorkUnitType.EinzelGruppe),
+					new WorkUnit(new Date(y, m, 22 + day, 15, 30), new Date(y, m, 22 + day, 16, 00), WorkUnitType.EinzelGruppeReinigung),
+				];
+
+				units.forEach(x => d.WorkUnits.push(x));
+
+				d.WorkUnits().forEach(wu => {
+					this.Employees().forEach(e => {
+						wu.work().push(ko.observable(new WorkCell(WorkType.Pause, e, wu)));
+					});
+				});
 			}
 		}
 
