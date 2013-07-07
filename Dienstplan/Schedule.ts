@@ -340,7 +340,7 @@ module Schedule {
 					}
 				}
 			}
-
+			console.log(hours);
 			return hours;
 		}
 

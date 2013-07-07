@@ -381,7 +381,7 @@ var Schedule;
                     }
                 }
             }
-
+            console.log(hours);
             return hours;
         };
 
