@@ -7,6 +7,7 @@
 	<link href="Content/bootstrap.min.css" rel="stylesheet" media="screen">
     <link rel="stylesheet" href="app.css" type="text/css" />
 	<script src="Scripts/jquery-2.0.2.js"></script>
+	<script src="Scripts/jquery.cookie.js"></script>
 	<script src="Scripts/knockout-2.2.1.js"></script>
 	<script src="Scripts/knockout-bootstrap.js"></script>
     <script src="Schedule.js"></script>
@@ -15,6 +16,9 @@
 <body>
     <h1>Schedule</h1>
 
+	<button data-bind="click: schedule.Save">Save</button>
+	<button data-bind="click: schedule.Load">Load</button>
+	<textarea data-bind="text: schedule.PlanName"></textarea>
 	<div id="schedule">
 		<table>
 			<thead>
@@ -56,9 +60,7 @@
 						<div data-bind="progress: 'schedule.relativeHours(employee)'" style="width:300px" />
 					</td>
 					<td data-bind="with: schedule.totalHours(employee)">
-						<span data-bind="text: getHours() - 1"></span>
-						<span>:</span>
-						<span data-bind="text: Schedule.WorkUnit.pad(getMinutes(), 2)"></span>
+						<span data-bind="text: $data - 1"></span>
 					</td>
 				</tr>
 				<!-- /ko -->

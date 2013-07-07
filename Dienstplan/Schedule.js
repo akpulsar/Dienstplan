@@ -1,4 +1,5 @@
 ﻿/// <reference path="Scripts/typings/knockout/knockout.d.ts" />
+/// <reference path="Scripts/typings/jquery.cookie/jquery.cookie.d.ts" />
 // Module
 var Schedule;
 (function (Schedule) {
@@ -84,12 +85,22 @@ var Schedule;
                         }
                         break;
                     case WorkUnitType.DoppelGruppe:
-                        if (this.work().filter(function (x) {
-                            return (x().employee.type == EmployeeType.Teacher && x().type() == WorkType.KinderDienst);
-                        }).length != 2 || this.work().filter(function (x) {
-                            return (x().employee.type == EmployeeType.Helper && x().type() == WorkType.KinderDienst);
-                        }).length != 2) {
-                            err.push("There must be 2 teachers and 2 helpers");
+                        if (this.beginTime.getHours() < 8) {
+                            if (this.work().filter(function (x) {
+                                return (x().employee.type == EmployeeType.Teacher && x().type() == WorkType.KinderDienst);
+                            }).length < 2 || this.work().filter(function (x) {
+                                return (x().employee.type == EmployeeType.Helper && x().type() == WorkType.KinderDienst);
+                            }).length < 1) {
+                                err.push("There must be 2 teachers and 2 helpers");
+                            }
+                        } else {
+                            if (this.work().filter(function (x) {
+                                return (x().employee.type == EmployeeType.Teacher && x().type() == WorkType.KinderDienst);
+                            }).length < 2 || this.work().filter(function (x) {
+                                return (x().employee.type == EmployeeType.Helper && x().type() == WorkType.KinderDienst);
+                            }).length < 2) {
+                                err.push("There must be 2 teachers and 2 helpers");
+                            }
                         }
                         break;
                     case WorkUnitType.Mittagessen:
@@ -122,9 +133,9 @@ var Schedule;
                     case WorkUnitType.EinzelGruppeReinigung:
                         if (!(this.work().filter(function (x) {
                             return x().employee.type == EmployeeType.Teacher && x().type() == WorkType.KinderDienst;
-                        }).length == 1 && this.work().filter(function (x) {
+                        }).length >= 1 && this.work().filter(function (x) {
                             return x().type() == WorkType.Reinigung;
-                        }).length == 1)) {
+                        }).length >= 1)) {
                             err.push("1x Päd -> Kinderdienst + 1x Hilf -> Reinigung");
                         }
                         break;
@@ -171,7 +182,7 @@ var Schedule;
 
             this.WorkUnits().forEach(function (wu) {
                 if (wu.work()[employee.index]().type() == WorkType.Pause) {
-                    beginTime = wu.beginTime;
+                    beginTime = wu.endTime;
                     endTime = wu.endTime;
                 } else {
                     endTime = wu.endTime;
@@ -226,24 +237,69 @@ var Schedule;
 
         WorkCell.prototype.changeType = function () {
             var newType = this.type();
-            switch (newType) {
-                case WorkType.Pause:
-                    newType = WorkType.KinderDienst;
+            var unitType = this.workUnit.type;
+
+            switch (unitType) {
+                case WorkUnitType.DoppelGruppe:
+                case WorkUnitType.EinzelGruppe:
+                case WorkUnitType.EinzelGruppeFrueh:
+                    switch (newType) {
+                        case WorkType.Pause:
+                            newType = WorkType.KinderDienst;
+                            break;
+                        case WorkType.KinderDienst:
+                            newType = WorkType.Pause;
+                            break;
+                        default:
+                            newType = WorkType.KinderDienst;
+                            break;
+                    }
                     break;
-                case WorkType.KinderDienst:
-                    newType = WorkType.Kueche;
+                case WorkUnitType.EinzelGruppeReinigung:
+                    switch (newType) {
+                        case WorkType.Pause:
+                            newType = WorkType.KinderDienst;
+                            break;
+                        case WorkType.KinderDienst:
+                            newType = WorkType.Reinigung;
+                            break;
+                        case WorkType.Reinigung:
+                            newType = WorkType.Pause;
+                            break;
+                        default:
+                            newType = WorkType.KinderDienst;
+                            break;
+                    }
                     break;
-                case WorkType.Kueche:
-                    newType = WorkType.Rasten;
+                case WorkUnitType.KuecheRastenAufbleiber:
+                    switch (newType) {
+                        case WorkType.Pause:
+                            newType = WorkType.Kueche;
+                            break;
+                        case WorkType.Kueche:
+                            newType = WorkType.Rasten;
+                            break;
+                        case WorkType.Rasten:
+                            newType = WorkType.Aufbleiber;
+                            break;
+                        case WorkType.Aufbleiber:
+                            newType = WorkType.Pause;
+                            break;
+                        default:
+                            newType = WorkType.Pause;
+                    }
                     break;
-                case WorkType.Rasten:
-                    newType = WorkType.Aufbleiber;
-                    break;
-                case WorkType.Aufbleiber:
-                    newType = WorkType.Reinigung;
-                    break;
-                case WorkType.Reinigung:
-                    newType = WorkType.Pause;
+                case WorkUnitType.Mittagessen:
+                    switch (newType) {
+                        case WorkType.Pause:
+                            newType = WorkType.KinderDienst;
+                            break;
+                        case WorkType.KinderDienst:
+                            newType = WorkType.Pause;
+                            break;
+                        default:
+                            newType = WorkType.Pause;
+                    }
                     break;
             }
 
@@ -268,11 +324,12 @@ var Schedule;
             var _this = this;
             this.Days = ko.observableArray([]);
             this.Employees = ko.observableArray([]);
+            this.PlanName = ko.observable("default");
             this.Employees.push(new Employee("Elisabeth", 0, "red", EmployeeType.Teacher));
             this.Employees.push(new Employee("Theresa", 1, "green", EmployeeType.Teacher));
             this.Employees.push(new Employee("Irene", 2, "yellow", EmployeeType.Helper));
             this.Employees.push(new Employee("Renate", 3, "palegreen", EmployeeType.Helper));
-            this.Employees.push(new Employee("Andrea", 4, "orange", EmployeeType.Teacher));
+            this.Employees.push(new Employee("Andrea", 4, "orange", EmployeeType.Helper));
 
             for (var day = 0; day < 5; day++) {
                 var d = new WorkDay();
@@ -320,17 +377,50 @@ var Schedule;
                     var wu = this.Days()[day].WorkUnits()[i];
                     var wc = wu.work()[employee.index]();
                     if (wc.type() != WorkType.Pause) {
-                        hours += (wu.endTime.getTime() - wu.beginTime.getTime());
+                        hours += (wu.endTime.getTime() - wu.beginTime.getTime()) / (1000 * 60 * 60);
                     }
                 }
             }
 
-            var d = new Date(hours);
-            return d;
+            return hours;
         };
 
         Week.prototype.relativeHours = function (employee) {
-            return ((this.totalHours(employee).getHours() / 38.5) * 100) + '%';
+            return ((this.totalHours(employee) / 38.5) * 100) + '%';
+        };
+
+        Week.prototype.serializePlan = function () {
+            var result = [];
+
+            this.Days().forEach(function (d) {
+                d.WorkUnits().forEach(function (wu) {
+                    wu.work().forEach(function (w) {
+                        result.push(w().type());
+                    });
+                });
+            });
+
+            return JSON.stringify(result);
+        };
+
+        Week.prototype.loadPlan = function (x) {
+            var arr = JSON.parse(x);
+            var pos = 0;
+            this.Days().forEach(function (d) {
+                d.WorkUnits().forEach(function (wu) {
+                    wu.work().forEach(function (w) {
+                        w().type(arr[pos++]);
+                    });
+                });
+            });
+        };
+
+        Week.prototype.Save = function () {
+            $.cookie(this.PlanName(), encodeURIComponent(this.serializePlan()));
+        };
+
+        Week.prototype.Load = function () {
+            this.loadPlan(decodeURIComponent($.cookie(this.PlanName())));
         };
         return Week;
     })();
