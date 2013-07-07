@@ -175,7 +175,6 @@ var Schedule;
         };
 
         WorkDay.prototype.checkSixHoursLimit = function (employee) {
-            console.log("checking six hours");
             var tooLong = false;
             var beginTime = this.WorkUnits()[0].beginTime;
             var endTime = beginTime;
@@ -381,7 +380,6 @@ var Schedule;
                     }
                 }
             }
-            console.log(hours);
             return hours;
         };
 
@@ -416,7 +414,7 @@ var Schedule;
         };
 
         Week.prototype.Save = function () {
-            $.cookie(this.PlanName(), encodeURIComponent(this.serializePlan()));
+            $.cookie(this.PlanName(), encodeURIComponent(this.serializePlan()), { expires: 365 });
         };
 
         Week.prototype.Load = function () {

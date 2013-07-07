@@ -145,7 +145,6 @@ module Schedule {
 		}
 
 		checkSixHoursLimit(employee: Employee): { result: boolean; message: string } {
-			console.log("checking six hours");
 			var tooLong = false;
 			var beginTime = this.WorkUnits()[0].beginTime;
 			var endTime = beginTime;
@@ -340,7 +339,6 @@ module Schedule {
 					}
 				}
 			}
-			console.log(hours);
 			return hours;
 		}
 
@@ -375,7 +373,7 @@ module Schedule {
 		}
 
 		Save() {
-			$.cookie(this.PlanName(), encodeURIComponent(this.serializePlan()));
+			$.cookie(this.PlanName(), encodeURIComponent(this.serializePlan()), { expires: 365 });
 		}
 
 		Load() {
